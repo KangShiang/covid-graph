@@ -20,7 +20,8 @@ import covidstats.views
 urlpatterns = [
     path("", hello.views.index, name="index"),
     path("db/", hello.views.db, name="db"),
-    path("stats/", covidstats.views.get, name="covdistats"),
+    path("stats/", covidstats.views.get2, name="covdistats"),
+    path("stats", covidstats.views.get2, name="covdistats"),
     path("demo/", covidstats.views.demo, name="demo"),
     path("admin/", admin.site.urls),
 

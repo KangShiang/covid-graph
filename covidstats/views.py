@@ -38,7 +38,7 @@ def get_country_total(data, country):
     return result
 
 
-def get_provience_total(data, country, province):
+def get_province_total(data, country, province):
     start_date = datetime.datetime(2020, 1, 22, 0, 0, 0)
     result = []
     for place in data:
@@ -65,11 +65,63 @@ def get(request):
 
     response = None
     if province is not None:
-        response = get_provience_total(data, country, province)
+        response = get_province_total(data, country, province)
     else:
         response = get_country_total(data, country)
 
     return JsonResponse(response, safe=False)
+
+
+def get2(request):
+    data = None
+    country = request.GET.get("country")
+    province = request.GET.get("province")
+    try:
+        data = get_latest_data()
+    except:
+        data=recover_from_file()
+
+    locations = {}
+    max_len = 0
+    if province is not None:
+        provinces = province.split(',')
+        for entry in provinces:
+            c = entry.split('-')[0]
+            p = entry.split('-')[1]
+            locations[p] = list(filter(lambda x: x != 0, get_province_total(data, c, p)))
+            if (len(locations[p]) > max_len): max_len = len(locations[p])
+
+    if country is not None:
+        countries = country.split(',')
+        for c in countries:
+            locations[c] = list(filter(lambda x: x != 0, get_country_total(data, c)))
+            if (len(locations[c]) > max_len): max_len = len(locations[c])
+    
+    response = format_response(locations, max_len)
+    return JsonResponse(response, safe=False)
+
+
+def format_response(locations, max_len):
+    response = []
+    day = 0
+    while day < max_len:
+        response.append([])
+        if day == 0: response[0].append('Day')
+        else: response[day].append(day)
+        for location, data in locations.items():
+            print(day)
+            print(data)
+            print('\n')
+            if day == 0: 
+                response[0].append(location)
+            elif day > len(data) - 1: 
+                response[day].append(None)
+            else: 
+                response[day].append(data[day] if data[day] else None)
+        day += 1
+
+    print(response)
+    return response
 
 
 def demo(request):
