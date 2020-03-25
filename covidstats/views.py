@@ -7,7 +7,7 @@ import requests
 from dev_util import cache_util
 
 def fetch_new_data_from_api():
-    response = requests.get('https://corona.lmao.ninja/historical')
+    response = requests.get('https://corona.lmao.ninja/v2/historical')
     data = response.json()
     cache_data = cache_util.process_api_data_for_cache(data)
     cache_util.store_cache(cache_data)

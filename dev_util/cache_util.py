@@ -57,6 +57,8 @@ def process_api_data_for_cache(data):
     for place in data:
         country = place.get("country")
         province = place.get("province")
+        print(country)
+        print(province)
         if cache.get("data").get(country) is None:
             cache["data"][country] = process_place_data(place)
             if province is not None:
@@ -65,5 +67,6 @@ def process_api_data_for_cache(data):
             country_data = cache.get("data").get(country)
             country_data = add_province_to_country(country_data, place)
             cache["data"][country] = country_data
-            cache["data"][country+ "_" + province] = process_place_data(place)
+            if province is not None:
+                cache["data"][country+ "_" + province] = process_place_data(place)
     return cache
