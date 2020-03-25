@@ -76,42 +76,40 @@ def get2(request):
     data = None
     country = request.GET.get("country")
     province = request.GET.get("province")
+    min_count = request.GET.get("min")
     try:
         data = get_latest_data()
     except:
         data=recover_from_file()
 
     locations = {}
-    max_len = 0
+    max_count = 0
     if province is not None:
-        provinces = province.split(',')
+        provinces = province.split('--')
         for entry in provinces:
             c = entry.split('-')[0]
             p = entry.split('-')[1]
             locations[p] = list(filter(lambda x: x != 0, get_province_total(data, c, p)))
-            if (len(locations[p]) > max_len): max_len = len(locations[p])
+            if (len(locations[p]) > max_count): max_count = len(locations[p])
 
     if country is not None:
-        countries = country.split(',')
+        countries = country.split('--')
         for c in countries:
             locations[c] = list(filter(lambda x: x != 0, get_country_total(data, c)))
-            if (len(locations[c]) > max_len): max_len = len(locations[c])
+            if (len(locations[c]) > max_count): max_count = len(locations[c])
     
-    response = format_response(locations, max_len)
+    response = format_response(locations, max_count)
     return JsonResponse(response, safe=False)
 
 
-def format_response(locations, max_len):
+def format_response(locations, max_count):
     response = []
     day = 0
-    while day < max_len:
+    while day < max_count:
         response.append([])
         if day == 0: response[0].append('Day')
         else: response[day].append(day)
         for location, data in locations.items():
-            print(day)
-            print(data)
-            print('\n')
             if day == 0: 
                 response[0].append(location)
             elif day > len(data) - 1: 
@@ -120,7 +118,6 @@ def format_response(locations, max_len):
                 response[day].append(data[day] if data[day] else None)
         day += 1
 
-    print(response)
     return response
 
 
