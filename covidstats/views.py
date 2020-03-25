@@ -4,12 +4,14 @@ from django.http import JsonResponse, HttpResponse
 import json
 import datetime
 import requests
+from dev_util import cache_util
 
-
-def get_latest_data():
+def fetch_new_data_from_api():
     response = requests.get('https://corona.lmao.ninja/historical')
     data = response.json()
-    return data
+    cache_data = cache_util.process_api_data_for_cache(data)
+    cache_util.store_cache(cache_data)
+    return cache_data
 
 def recover_from_file():
     try:
@@ -18,58 +20,23 @@ def recover_from_file():
     except:
         return None
 
-def get_country_total(data, country):
-    start_date = datetime.datetime(2020, 1, 22, 0, 0, 0)
-    result = []
-    for place in data:
-        day = 0
-        if country == place.get("country"):
-            timeline = place.get("timeline").get("cases")
-            date = start_date + datetime.timedelta(days=day)
-            date_str = date.strftime("%-m/%-d/20")
-            while timeline.get(date_str) is not None:
-                if len(result) > day:
-                    result[day] = result[day] + int(timeline.get(date_str))
-                else:
-                    result.append(int(timeline.get(date_str)))
-                day += 1
-                date = start_date + datetime.timedelta(days=day)
-                date_str = date.strftime("%-m/%-d/20")
-    return result
 
+def get_data():
+    data = cache_util.get_cache()
+    return data if data is not None else fetch_new_data_from_api()
 
-def get_province_total(data, country, province):
-    start_date = datetime.datetime(2020, 1, 22, 0, 0, 0)
-    result = []
-    for place in data:
-        day = 0
-        if country == place.get("country") and province == place.get("province"):
-            timeline = place.get("timeline").get("cases")
-            date = start_date + datetime.timedelta(days=day)
-            date_str = date.strftime("%-m/%-d/20")
-            while timeline.get(date_str) is not None:
-                result.append(int(timeline.get(date_str)))
-                day += 1
-                date = start_date + datetime.timedelta(days=day)
-                date_str = date.strftime("%-m/%-d/20")
-    return result
+def get_none_zero_cases(data):
+    rslt = map(lambda x: x["cases"], data)
+    return list(filter(lambda x: x != 0, rslt))
 
 def get(request):
     data = None
     country = request.GET.get("country")
     province = request.GET.get("province")
-    try:
-        data = get_latest_data()
-    except:
-        data = recover_from_file()
-
-    response = None
-    if province is not None:
-        response = get_province_total(data, country, province)
-    else:
-        response = get_country_total(data, country)
-
-    return JsonResponse(response, safe=False)
+    data = get_data()
+    key = country + "_" + province if province is not None else country
+    data = get_none_zero_cases(data.get("data")[key])
+    return JsonResponse(data, safe=False)
 
 
 def get2(request):
@@ -77,7 +44,7 @@ def get2(request):
     country = request.GET.get("country")
     province = request.GET.get("province")
     try:
-        data = get_latest_data()
+        data = fetch_new_data_from_api()
     except:
         data=recover_from_file()
 
@@ -126,22 +93,20 @@ def format_response(locations, max_len):
 
 def demo(request):
     data = None
+
     try:
-        data = get_latest_data()
+        data = fetch_new_data_from_api()
     except:
         data = recover_from_file()
 
     canada = list(filter(lambda x: x != 0, get_country_total(data, "canada")))
-    usa = list(filter(lambda x: x != 0, get_country_total(data, "usa")))
     italy = list(filter(lambda x: x != 0, get_country_total(data, "italy")))
     china = list(filter(lambda x: x != 0, get_country_total(data, "china")))
-
     day = 0
 
     response = [[
             'Day',
             'Canada',
-            'US',
             'Italy',
             'China'
         ]
@@ -149,10 +114,9 @@ def demo(request):
 
     while day < len(canada) or  day < len(canada) or  day < len(canada):
         c = canada[day] if day < len(canada) else None
-        u = usa[day] if day < len(usa) else None
         i = italy[day] if day < len(italy) else None
         ci = china[day] if day < len(china) else None
-        response.append([day + 1, c, u, i, ci])
+        response.append([day + 1, c, i, ci])
         day += 1
 
     return JsonResponse(response, safe=False)
