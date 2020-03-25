@@ -29,42 +29,36 @@ def get_none_zero_cases(data):
     rslt = map(lambda x: x["cases"], data)
     return list(filter(lambda x: x != 0, rslt))
 
+def set_min_value(data, min_value):
+    return list(filter(lambda x: x > min_value, data))
+
 def get(request):
     data = None
     country = request.GET.get("country")
     province = request.GET.get("province")
+    min_count = 0 if request.GET.get("min") is None else int(request.GET.get("min"))
+
     data = get_data()
-    key = country + "_" + province if province is not None else country
-    data = get_none_zero_cases(data.get("data")[key])
-    return JsonResponse(data, safe=False)
-
-
-def get2(request):
-    data = None
-    country = request.GET.get("country")
-    province = request.GET.get("province")
-    min_count = request.GET.get("min")
-    try:
-        data = fetch_new_data_from_api()
-    except:
-        data=recover_from_file()
-
-    locations = {}
     max_count = 0
+    locations = {}
     if province is not None:
         provinces = province.split('--')
         for entry in provinces:
             c = entry.split('-')[0]
             p = entry.split('-')[1]
-            locations[p] = list(filter(lambda x: x != 0, get_province_total(data, c, p)))
+            key = c + "_" + p if p is not None else c
+            cp_data = get_none_zero_cases(data.get("data")[key])
+            locations[p] = set_min_value(cp_data, min_count)
             if (len(locations[p]) > max_count): max_count = len(locations[p])
 
     if country is not None:
         countries = country.split('--')
         for c in countries:
-            locations[c] = list(filter(lambda x: x != 0, get_country_total(data, c)))
+            c_data = get_none_zero_cases(data.get("data")[c])
+            locations[c] = set_min_value(c_data, min_count)
             if (len(locations[c]) > max_count): max_count = len(locations[c])
-    
+
+
     response = format_response(locations, max_count)
     return JsonResponse(response, safe=False)
 
@@ -89,31 +83,4 @@ def format_response(locations, max_count):
 
 
 def demo(request):
-    data = None
-
-    try:
-        data = fetch_new_data_from_api()
-    except:
-        data = recover_from_file()
-
-    canada = list(filter(lambda x: x != 0, get_country_total(data, "canada")))
-    italy = list(filter(lambda x: x != 0, get_country_total(data, "italy")))
-    china = list(filter(lambda x: x != 0, get_country_total(data, "china")))
-    day = 0
-
-    response = [[
-            'Day',
-            'Canada',
-            'Italy',
-            'China'
-        ]
-    ]
-
-    while day < len(canada) or  day < len(canada) or  day < len(canada):
-        c = canada[day] if day < len(canada) else None
-        i = italy[day] if day < len(italy) else None
-        ci = china[day] if day < len(china) else None
-        response.append([day + 1, c, i, ci])
-        day += 1
-
-    return JsonResponse(response, safe=False)
+    return HttpResponse(status=200)
