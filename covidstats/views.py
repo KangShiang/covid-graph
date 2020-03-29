@@ -32,10 +32,34 @@ def get_none_zero_cases(data):
 def set_min_value(data, min_value):
     return list(filter(lambda x: x > min_value, data))
 
+def country(request):
+    data = get_data()
+    countries = list(data["data"].keys())
+    dictionary = {}
+    for each in countries:
+        pair = each.split("_")
+        country_name = pair[0]
+        province_name = each.split("_")[1] if len(each.split("_")) > 1 else None
+        if country_name not in dictionary:
+            dictionary[country_name] = {"province": [province_name]} if province_name is not None else {"province": None}
+        else:
+            if dictionary[country_name]["province"] is None and province_name is not None:
+                dictionary[country_name]["province"] = [province_name]
+            else:
+                dictionary[country_name]["province"].append(province_name)
+
+    keys = sorted(list(dictionary.keys()))
+    response = list(map(lambda x: {
+        "name": x,
+        "province": sorted(dictionary[x]["province"]) if dictionary[x]["province"] is not None else None
+    }, keys))
+    return JsonResponse(response, safe=False)
+
 def get(request):
     data = None
     country = request.GET.get("country")
     province = request.GET.get("province")
+    sort = request.get("sort")
     min_count = 0 if request.GET.get("min") is None else int(request.GET.get("min"))
 
     data = get_data()
@@ -60,6 +84,16 @@ def get(request):
 
 
     response = format_response(locations, max_count)
+    return JsonResponse(response, safe=False)
+
+
+def timeseries(request):
+    data = None
+    country = request.GET.get("country")
+    province = request.GET.get("province")
+    data = get_data()
+    cp_data = get_none_zero_cases(data.get("data")[key])
+    response = []
     return JsonResponse(response, safe=False)
 
 

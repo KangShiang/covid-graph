@@ -22,6 +22,9 @@ urlpatterns = [
     path("db/", hello.views.db, name="db"),
     path("stats/", covidstats.views.get, name="covdistats"),
     path("stats", covidstats.views.get, name="covdistats"),
+    path("timeseries/", covidstats.views.timeseries, name="covdistats"),
+    path("timeseries", covidstats.views.timeseries, name="covdistats"),
+    path("country/", covidstats.views.country, name="country"),
     path("demo/", covidstats.views.demo, name="demo"),
     path("admin/", admin.site.urls),
 
