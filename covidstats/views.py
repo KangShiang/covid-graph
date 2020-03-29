@@ -88,13 +88,15 @@ def get(request):
 
 
 def timeseries(request):
-    data = None
     country = request.GET.get("country")
     province = request.GET.get("province")
     data = get_data()
-    cp_data = get_none_zero_cases(data.get("data")[key])
-    response = []
-    return JsonResponse(response, safe=False)
+    key = country
+    if province is not None:
+        key = key + "_" + province
+    data = list(filter(lambda x: x["cases"] != 0, data.get("data")[key]))
+    data = [ {"day": index, "cases": value["cases"]} for index, value in enumerate(data)]
+    return JsonResponse(data, safe=False)
 
 
 def format_response(locations, max_count):
